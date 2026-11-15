@@ -1,0 +1,69 @@
+name: Gate 0 toolchain verification
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Prepare artifacts folder
+        run: mkdir -p artifacts/logs artifacts/screenshots
+
+      - name: 1. Install dependencies
+        run: |
+          set -o pipefail
+          npm install --no-audit --no-fund 2>&1 | tee artifacts/logs/1-install.log
+          cp package-lock.json artifacts/package-lock.json
+          { node -v; npm -v; npm ls --depth=0; } 2>&1 | tee artifacts/logs/versions.txt
+
+      - name: 2. Build Next.js
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee artifacts/logs/2-build.log
+
+      - name: 3. Unit tests
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee artifacts/logs/3-unit-tests.log
+
+      - name: 4. Browser tests (desktop 1440, mobile 375)
+        run: |
+          set -o pipefail
+          npx playwright install --with-deps chromium 2>&1 | tail -n 5
+          npm run e2e 2>&1 | tee artifacts/logs/4-browser-tests.log
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Gate 0 toolchain verification"
+            echo "Commit: ${GITHUB_SHA}"
+            echo
+            echo '```'
+            cat artifacts/logs/versions.txt 2>/dev/null || echo "versions not captured"
+            echo '```'
+            echo "Steps passed up to the first failure shown above. Full logs, screenshots and the Playwright report are in the gate0-evidence artifact."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate0-evidence
+          path: artifacts/
+          retention-days: 30

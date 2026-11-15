@@ -1,0 +1,24 @@
+{
+  "name": "bm-lab-website-gate0",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Gate 0 toolchain verification. Throwaway test project: no BLEU or client material.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "gsap": "^3",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "vitest": "latest"
+  },
+  "engines": { "node": ">=20" }
+}
